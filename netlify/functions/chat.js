@@ -1,12 +1,3 @@
-```javascript
-{
-  message: "Function is working",
-  apiKeyExists: true,
-  apiKeyFirstChars: apiKey.substring(0, 5) + "..."
-}
-```
-
-لحل هذه المشكلة، يمكننا تعديل ملف `chat.js` المبسط ليتوافق بشكل أفضل مع ما يتوقعه ملف index.html:
 
 ```javascript
 // netlify/functions/chat.js - نسخة معدلة للاختبار
