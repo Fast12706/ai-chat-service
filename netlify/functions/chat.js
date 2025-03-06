@@ -24,7 +24,8 @@ exports.handler = async function(event, context) {
     const requestData = JSON.parse(event.body);
     console.log("Parsed request data:", requestData);
     
-    const apiKey = process.env.OPENAI_API_KEY;
+    // استخدام مفتاح DeepSeek API بدلاً من OpenAI
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     console.log("API Key exists:", !!apiKey);
     
     // اختبار وجود مفتاح API
@@ -52,41 +53,49 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // إعداد الاتصال بـ OpenAI API
+    // إعداد الاتصال بـ DeepSeek API
     try {
-      const openaiResponse = await axios({
+      const deepseekResponse = await axios({
         method: 'post',
-        url: 'https://api.openai.com/v1/chat/completions',
+        url: 'https://api.deepseek.com/v1/chat/completions',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         data: {
-          model: "gpt-3.5-turbo", // يمكنك تغيير النموذج حسب احتياجاتك
+          model: "deepseek-chat", // يمكنك تغيير النموذج حسب احتياجاتك
           messages: requestData.messages,
           max_tokens: 1000 // عدد الرموز الأقصى للرد
         }
       });
       
-      console.log("OpenAI API response received");
+      console.log("DeepSeek API response received");
       return {
         statusCode: 200,
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Headers": "Content-Type"
         },
-        body: JSON.stringify(openaiResponse.data)
+        body: JSON.stringify(deepseekResponse.data)
       };
     } catch (apiError) {
-      console.log("API Error:", apiError.response ? apiError.response.data : apiError.message);
+      console.log("API Error:", apiError.response ? apiError.response.data : apiError);
+      
+      // إرجاع رسالة اختبارية في حالة الخطأ
       return {
-        statusCode: apiError.response ? apiError.response.status : 500,
+        statusCode: 200,
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Headers": "Content-Type"
         },
-        body: JSON.stringify({ 
-          error: apiError.response ? apiError.response.data : { message: apiError.message } 
+        body: JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: "هذه رسالة اختبارية. حدث خطأ أثناء الاتصال بـ DeepSeek API. الرجاء التحقق من مفتاح API والاتصال بالإنترنت."
+              }
+            }
+          ]
         })
       };
     }
