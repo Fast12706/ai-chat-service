@@ -71,6 +71,10 @@
         button:hover {
             background-color: #45a049;
         }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
         .loading {
             text-align: center;
             color: #666;
@@ -104,7 +108,7 @@
             
             // حفظ المحادثة
             let conversation = [
-                { role: "system", content: "أنت مساعد ذكي مفيد وودود." },
+                { role: "system", content: "أنت مساعد ذكي مفيد وودود. أجب دائماً باللغة العربية." },
                 { role: "assistant", content: "مرحباً! كيف يمكنني مساعدتك اليوم؟" }
             ];
             
@@ -126,6 +130,8 @@
             // إرسال الرسالة إلى واجهة برمجة تطبيقات الذكاء الاصطناعي
             async function sendToAI(message) {
                 loading.style.display = 'block';
+                sendButton.disabled = true;
+                userInput.disabled = true;
                 
                 try {
                     const response = await fetch('/.netlify/functions/chat', {
@@ -145,12 +151,20 @@
                         return `حدث خطأ: ${data.error.message || 'خطأ غير معروف'}`;
                     }
                     
-                    return data.answer || data.message || data.choices[0].message.content;
+                    // التعامل مع بنية البيانات من OpenAI API
+                    if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+                        return data.choices[0].message.content;
+                    }
+                    
+                    return data.answer || "عذراً، لم أستطع فهم الرد من الخدمة.";
+                    
                 } catch (error) {
                     console.error('خطأ في الاتصال:', error);
                     return "عذراً، حدث خطأ في الاتصال بالخدمة. الرجاء التحقق من اتصالك بالإنترنت.";
                 } finally {
                     loading.style.display = 'none';
+                    sendButton.disabled = false;
+                    userInput.disabled = false;
                 }
             }
             
@@ -181,4 +195,3 @@
     </script>
 </body>
 </html>
-```
