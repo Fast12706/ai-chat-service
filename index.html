@@ -130,15 +130,17 @@
                 loading.style.display = 'block';
                 
                 try {
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            messages: conversation
-                        })
-                    });
+                    const response = await fetch('/.netlify/functions/chat', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        messages: conversation
+    })
+});
+```
+                    
                     
                     const data = await response.json();
                     
