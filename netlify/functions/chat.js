@@ -1,9 +1,19 @@
-
-```javascript
-// netlify/functions/chat.js - نسخة معدلة للاختبار
-const axios = require('axios');
-
+// netlify/functions/chat.js
 exports.handler = async function(event, context) {
+  // التعامل مع طلبات CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+      },
+      body: ""
+    };
+  }
+
+  // التعامل مع الطلبات العادية
   try {
     const apiKey = process.env.OPENAI_API_KEY;
     
@@ -19,7 +29,7 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // محاكاة استجابة OpenAI
+    // إرجاع استجابة اختبار
     return {
       statusCode: 200,
       headers: {
@@ -30,7 +40,7 @@ exports.handler = async function(event, context) {
         choices: [
           {
             message: {
-              content: "هذه رسالة اختبار. مفتاح API موجود ويبدأ بـ: " + apiKey.substring(0, 5) + "..."
+              content: "هذه رسالة اختبار. تم الاتصال بنجاح! مفتاح API موجود ويبدأ بـ: " + apiKey.substring(0, 5) + "..."
             }
           }
         ]
