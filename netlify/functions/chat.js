@@ -1,6 +1,4 @@
 // netlify/functions/chat.js
-const axios = require('axios');
-
 exports.handler = async function(event, context) {
   console.log("Function started - Method:", event.httpMethod);
   
@@ -24,81 +22,51 @@ exports.handler = async function(event, context) {
     const requestData = JSON.parse(event.body);
     console.log("Parsed request data:", requestData);
     
-    // استخدام مفتاح DeepSeek API بدلاً من OpenAI
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    console.log("API Key exists:", !!apiKey);
-    
-    // اختبار وجود مفتاح API
-    if (!apiKey) {
-      console.log("API key missing, returning error");
-      return {
-        statusCode: 500,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
-        body: JSON.stringify({ error: 'API key is missing' })
-      };
-    }
-    
-    // اختبار وجود الرسائل
-    if (!requestData.messages || !Array.isArray(requestData.messages)) {
-      return {
-        statusCode: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
-        body: JSON.stringify({ error: 'Messages array is required' })
-      };
-    }
-    
-    // إعداد الاتصال بـ DeepSeek API
-    try {
-      const deepseekResponse = await axios({
-        method: 'post',
-        url: 'https://api.deepseek.com/v1/chat/completions',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          model: "deepseek-chat", // يمكنك تغيير النموذج حسب احتياجاتك
-          messages: requestData.messages,
-          max_tokens: 1000 // عدد الرموز الأقصى للرد
+    // استخراج رسالة المستخدم الأخيرة
+    let userMessage = "مرحباً";
+    if (requestData.messages && Array.isArray(requestData.messages)) {
+      for (let i = requestData.messages.length - 1; i >= 0; i--) {
+        if (requestData.messages[i].role === 'user') {
+          userMessage = requestData.messages[i].content;
+          break;
         }
-      });
-      
-      console.log("DeepSeek API response received");
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
-        body: JSON.stringify(deepseekResponse.data)
-      };
-    } catch (apiError) {
-      console.log("API Error:", apiError.response ? apiError.response.data : apiError);
-      
-      // إرجاع رسالة اختبارية في حالة الخطأ
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
-        body: JSON.stringify({
-          choices: [
-            {
-              message: {
-                content: "هذه رسالة اختبارية. حدث خطأ أثناء الاتصال بـ DeepSeek API. الرجاء التحقق من مفتاح API والاتصال بالإنترنت."
-              }
-            }
-          ]
-        })
-      };
+      }
     }
+    
+    // إنشاء رد مخصص بناءً على الرسالة
+    let botReply = "مرحباً! كيف يمكنني مساعدتك؟";
+    
+    if (userMessage.includes("مرحبا") || userMessage.includes("أهلا") || userMessage.includes("Hi") || userMessage.includes("hi")) {
+      botReply = "أهلاً وسهلاً! كيف يمكنني مساعدتك اليوم؟";
+    } else if (userMessage.includes("شكر") || userMessage.includes("thanks")) {
+      botReply = "العفو! سعيد بمساعدتك.";
+    } else if (userMessage.includes("اسم")) {
+      botReply = "أنا مساعد ذكي صممت لمساعدتك في الإجابة على أسئلتك.";
+    } else if (userMessage.includes("صحة") || userMessage.includes("مرض") || userMessage.includes("دكتور")) {
+      botReply = "أنا مساعد للمعلومات العامة فقط ولست مؤهلاً لتقديم استشارات طبية. يرجى استشارة الطبيب المختص دائماً للحصول على مشورة طبية.";
+    } else if (userMessage.length < 10) {
+      botReply = "هل يمكنك توضيح طلبك بمزيد من التفاصيل لأتمكن من مساعدتك بشكل أفضل؟";
+    } else {
+      botReply = "شكراً على رسالتك. هذه نسخة تجريبية من المساعد الذكي. سيتم تطوير الإجابات قريباً للتفاعل بشكل أفضل مع استفساراتك. نشكرك على تفهمك أثناء فترة الصيانة.";
+    }
+    
+    console.log("Sending test reply");
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type"
+      },
+      body: JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: botReply
+            }
+          }
+        ]
+      })
+    };
   } catch (error) {
     console.log("Error occurred:", error.message);
     console.log("Error stack:", error.stack);
