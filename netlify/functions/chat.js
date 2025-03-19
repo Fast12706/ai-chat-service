@@ -1,82 +1,64 @@
-// netlify/functions/chat.js
+const axios = require('axios');
+
 exports.handler = async function(event, context) {
-  console.log("Function started - Method:", event.httpMethod);
-  
-  // التعامل مع طلبات CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    console.log("Handling OPTIONS request");
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-      },
-      body: ""
-    };
+  // Check HTTP method
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // التعامل مع الطلبات العادية
   try {
-    console.log("Request body:", event.body);
-    const requestData = JSON.parse(event.body);
-    console.log("Parsed request data:", requestData);
+    const { patientInfo } = JSON.parse(event.body);
     
-    // استخراج رسالة المستخدم الأخيرة
-    let userMessage = "مرحباً";
-    if (requestData.messages && Array.isArray(requestData.messages)) {
-      for (let i = requestData.messages.length - 1; i >= 0; i--) {
-        if (requestData.messages[i].role === 'user') {
-          userMessage = requestData.messages[i].content;
-          break;
+    // Medical documentation system prompt with language flexibility
+    const systemPrompt = `You are an experienced emergency medicine consultant with over 20 years of expertise in handling critical cases and applying medico-legal principles.
+
+Create comprehensive medical documentation for the case with emphasis on:
+- Documentation of negative findings to rule out serious conditions
+- Explicit timing of all assessments and interventions
+- Documentation of patient refusals and risks explained
+- Clarity about consultation with specialists
+- Transparency about delays or systems issues
+- Reference to medical literature/guidelines when applicable
+
+Important: Respond in the same language that the user used in their input. If the user writes in Arabic, respond in Arabic. If the user writes in English, respond in English. Always maintain professional medical terminology appropriate for the language used.`;
+
+    // Call Claude API
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: "claude-3-7-sonnet-20250219",
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: patientInfo }
+        ],
+        max_tokens: 2000
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
         }
       }
-    }
+    );
     
-    // إنشاء رد مخصص بناءً على الرسالة
-    let botReply = "مرحباً! كيف يمكنني مساعدتك؟";
-    
-    if (userMessage.includes("مرحبا") || userMessage.includes("أهلا") || userMessage.includes("Hi") || userMessage.includes("hi")) {
-      botReply = "أهلاً وسهلاً! كيف يمكنني مساعدتك اليوم؟";
-    } else if (userMessage.includes("شكر") || userMessage.includes("thanks")) {
-      botReply = "العفو! سعيد بمساعدتك.";
-    } else if (userMessage.includes("اسم")) {
-      botReply = "أنا مساعد ذكي صممت لمساعدتك في الإجابة على أسئلتك.";
-    } else if (userMessage.includes("صحة") || userMessage.includes("مرض") || userMessage.includes("دكتور")) {
-      botReply = "أنا مساعد للمعلومات العامة فقط ولست مؤهلاً لتقديم استشارات طبية. يرجى استشارة الطبيب المختص دائماً للحصول على مشورة طبية.";
-    } else if (userMessage.length < 10) {
-      botReply = "هل يمكنك توضيح طلبك بمزيد من التفاصيل لأتمكن من مساعدتك بشكل أفضل؟";
-    } else {
-      botReply = "شكراً على رسالتك. هذه نسخة تجريبية من المساعد الذكي. سيتم تطوير الإجابات قريباً للتفاعل بشكل أفضل مع استفساراتك. نشكرك على تفهمك أثناء فترة الصيانة.";
-    }
-    
-    console.log("Sending test reply");
     return {
       statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type"
-      },
-      body: JSON.stringify({
-        choices: [
-          {
-            message: {
-              content: botReply
-            }
-          }
-        ]
+      body: JSON.stringify({ 
+        response: response.data.content[0].text 
       })
     };
   } catch (error) {
-    console.log("Error occurred:", error.message);
-    console.log("Error stack:", error.stack);
+    console.error('Error:', error.response?.data || error.message);
+    
+    // Determine error message language based on error text if possible
+    // Default to English for system errors
     return {
       statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type"
-      },
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ 
+        error: 'Error processing your request / حدث خطأ في معالجة طلبك',
+        details: error.message 
+      })
     };
   }
 };
