@@ -1,7 +1,7 @@
 {
   "name": "ai-chat-service",
   "version": "1.0.0",
-  "description": "خدمة محادثة ذكاء اصطناعي مع Netlify Functions",
+  "description": "AI Chat Service with Netlify Functions",
   "dependencies": {
     "axios": "^1.6.0"
   }
